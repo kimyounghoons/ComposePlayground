@@ -1,6 +1,7 @@
 package net.deali.composeplayground
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -13,25 +14,30 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import net.deali.composeplayground.ui.theme.ComposePlaygroundTheme
 
@@ -42,30 +48,30 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ComposePlaygroundTheme {
-                val items by vm.items.observeAsState()
+                val items by vm.items.observeAsState(initial = listOf())
+                val isAllLoaded by vm.isAllLoaded.observeAsState(initial = false)
+                val isLoading by vm.isLoading.observeAsState(initial = false)
                 val snackbarHostState = remember { SnackbarHostState() }
                 val snackbarCoroutineScope = rememberCoroutineScope()
-
-                Surface(color = MaterialTheme.colors.background) {
-                    Column {
-                        ItemList(items!!, Modifier.weight(1f)) {
-                            snackbarCoroutineScope.launch {
-                                snackbarHostState.currentSnackbarData?.dismiss()
-                                snackbarHostState.showSnackbar("${it}번째 아이템 입니다.")
-                            }
+                Column {
+                    ItemList(items, Modifier.weight(1f), onLoadMore = {
+                        if (isAllLoaded.not() && isLoading.not()) {
+                            vm.loadMore()
                         }
-
-                        SnackbarHost(
-                            hostState = snackbarHostState,
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        )
-
-                        BottomButtons(addItem = {
-                            vm.addItem()
-                        }, deleteItem = {
-                            vm.deleteItem()
-                        })
+                    }) {
+                        snackbarCoroutineScope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar("아이템 : ${it}")
+                        }
                     }
+
+                    SnackbarHost(hostState = snackbarHostState)
+
+                    BottomButtons(addItem = {
+                        vm.addItem()
+                    }, deleteItem = {
+                        vm.deleteItem()
+                    })
                 }
             }
         }
@@ -73,10 +79,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ItemList(items: List<Item>, modifier: Modifier, showSnackBar: (String) -> Unit) {
-    LazyColumn(
-        modifier.fillMaxWidth()
-    ) {
+fun ItemList(items: List<Item>, modifier: Modifier, onLoadMore: () -> Unit, showSnackBar: (String) -> Unit) {
+    val listState = rememberLazyListState()
+
+    LazyColumn(modifier.fillMaxWidth(), state = listState) {
         items(items) { item ->
             Row(Modifier
                 .height(50.dp)
@@ -94,6 +100,35 @@ fun ItemList(items: List<Item>, modifier: Modifier, showSnackBar: (String) -> Un
             }
             Divider(color = Color.LightGray, thickness = 1.dp)
         }
+    }
+
+    InfiniteListHandler(listState = listState) {
+        onLoadMore()
+    }
+}
+
+@Composable
+fun InfiniteListHandler(
+    listState: LazyListState,
+    buffer: Int = 2,
+    onLoadMore: () -> Unit
+) {
+    val loadMore = remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItemsNumber = layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
+
+            lastVisibleItemIndex > (totalItemsNumber - buffer)
+        }
+    }
+
+    LaunchedEffect(loadMore) {
+        snapshotFlow { loadMore.value }
+            .distinctUntilChanged()
+            .collect {
+                onLoadMore()
+            }
     }
 }
 
@@ -138,7 +173,10 @@ fun DefaultPreview() {
                 Item("3"),
                 Item("4")
             ),
-            Modifier
+            modifier = Modifier,
+            onLoadMore = {
+
+            }
         ) {
 
         }
