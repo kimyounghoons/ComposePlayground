@@ -1,7 +1,6 @@
 package net.deali.composeplayground
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -37,7 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import net.deali.composeplayground.ui.theme.ComposePlaygroundTheme
 
@@ -49,15 +48,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             ComposePlaygroundTheme {
                 val items by vm.items.observeAsState(initial = listOf())
-                val isAllLoaded by vm.isAllLoaded.observeAsState(initial = false)
-                val isLoading by vm.isLoading.observeAsState(initial = false)
                 val snackbarHostState = remember { SnackbarHostState() }
                 val snackbarCoroutineScope = rememberCoroutineScope()
                 Column {
                     ItemList(items, Modifier.weight(1f), onLoadMore = {
-                        if (isAllLoaded.not() && isLoading.not()) {
-                            vm.loadMore()
-                        }
+                        vm.loadMore()
                     }) {
                         snackbarCoroutineScope.launch {
                             snackbarHostState.currentSnackbarData?.dismiss()
@@ -118,15 +113,15 @@ fun InfiniteListHandler(
             val layoutInfo = listState.layoutInfo
             val totalItemsNumber = layoutInfo.totalItemsCount
             val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
-
             lastVisibleItemIndex > (totalItemsNumber - buffer)
         }
     }
 
     LaunchedEffect(loadMore) {
         snapshotFlow { loadMore.value }
-            .distinctUntilChanged()
-            .collect {
+            .filter {
+                it
+            }.collect {
                 onLoadMore()
             }
     }

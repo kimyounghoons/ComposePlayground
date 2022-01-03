@@ -1,6 +1,5 @@
 package net.deali.composeplayground
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -39,22 +38,21 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
     }
 
     fun loadMore() {
-        Log.e("kyh!!!", "loadMore pageCount : $pageCount")
-        viewModelScope.launch {
-            _isLoading.value = true
-            delay(1000)
-            val items = arrayListOf<Item>()
-            repeat(20) {
-                items.add(Item("아이템 ${_items.valueNN.size + it + 1}"))
+        if (_isLoading.valueNN.not() && _isAllLoaded.valueNN.not()) {
+            viewModelScope.launch {
+                _isLoading.value = true
+                delay(1000)
+                val items = arrayListOf<Item>()
+                repeat(20) {
+                    items.add(Item("아이템 ${_items.valueNN.size + it + 1}"))
+                }
+                _items.value = _items.valueNN + items
+                ++pageCount
+                if (pageCount > 10) {
+                    _isAllLoaded.value = true
+                }
+                _isLoading.value = false
             }
-            _items.value = _items.valueNN.let {
-                it + items
-            }
-            ++pageCount
-            if (pageCount > 10) {
-                _isAllLoaded.value = true
-            }
-            _isLoading.value = false
         }
     }
 
