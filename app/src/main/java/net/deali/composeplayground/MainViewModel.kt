@@ -1,6 +1,7 @@
 package net.deali.composeplayground
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,6 +21,10 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
     private val _isLoading = savedStateHandle.getLiveData(KEY_IS_LOADING, false)
     val isLoading: LiveData<Boolean>
         get() = _isLoading
+
+    private val _isRefreshing = MutableLiveData<Boolean>(true)
+    val isRefreshing : LiveData<Boolean> = _isRefreshing
+
 
     private var pageCount = 1
 
@@ -52,8 +57,16 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
                     _isAllLoaded.value = true
                 }
                 _isLoading.value = false
+                _isRefreshing.value = false
             }
         }
+    }
+
+    fun refresh() {
+        _isRefreshing.value = true
+        pageCount = 1
+        _items.value = listOf()
+        loadMore()
     }
 
     companion object {

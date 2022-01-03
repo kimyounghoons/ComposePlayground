@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,6 +36,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -50,23 +53,32 @@ class MainActivity : ComponentActivity() {
                 val items by vm.items.observeAsState(initial = listOf())
                 val snackbarHostState = remember { SnackbarHostState() }
                 val snackbarCoroutineScope = rememberCoroutineScope()
-                Column {
-                    ItemList(items, Modifier.weight(1f), onLoadMore = {
-                        vm.loadMore()
-                    }) {
-                        snackbarCoroutineScope.launch {
-                            snackbarHostState.currentSnackbarData?.dismiss()
-                            snackbarHostState.showSnackbar("아이템 : ${it}")
+                val isRefreshing by vm.isRefreshing.observeAsState(false)
+                SwipeRefresh(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
+                    state = rememberSwipeRefreshState(isRefreshing),
+                    onRefresh = { vm.refresh() },
+                ) {
+                    Column {
+                        ItemList(items, Modifier.weight(1f), onLoadMore = {
+                            vm.loadMore()
+                        }) {
+                            snackbarCoroutineScope.launch {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                snackbarHostState.showSnackbar("아이템 : ${it}")
+                            }
                         }
+
+                        SnackbarHost(hostState = snackbarHostState)
+
+                        BottomButtons(addItem = {
+                            vm.addItem()
+                        }, deleteItem = {
+                            vm.deleteItem()
+                        })
                     }
-
-                    SnackbarHost(hostState = snackbarHostState)
-
-                    BottomButtons(addItem = {
-                        vm.addItem()
-                    }, deleteItem = {
-                        vm.deleteItem()
-                    })
                 }
             }
         }
