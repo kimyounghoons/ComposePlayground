@@ -23,7 +23,7 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
         get() = _isLoading
 
     private val _isRefreshing = MutableLiveData<Boolean>(true)
-    val isRefreshing : LiveData<Boolean> = _isRefreshing
+    val isRefreshing: LiveData<Boolean> = _isRefreshing
 
 
     private var pageCount = 1
@@ -49,7 +49,12 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
                 delay(1000)
                 val items = arrayListOf<Item>()
                 repeat(20) {
-                    items.add(Item("아이템 ${_items.valueNN.size + it + 1}"))
+                    items.add(
+                        Item(title = "아이템 ${_items.valueNN.size + it + 1}", content = if (it % 2 == 0) {
+                            null
+                        } else {
+                            "내용 :${_items.valueNN.size + it + 1}"
+                        }))
                 }
                 _items.value = _items.valueNN + items
                 ++pageCount

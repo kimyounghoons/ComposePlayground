@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -30,12 +32,14 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.constraintlayout.compose.ChainStyle
+import androidx.constraintlayout.compose.ConstraintLayout
+import coil.compose.rememberImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.flow.collect
@@ -62,7 +66,7 @@ class MainActivity : ComponentActivity() {
                     onRefresh = { vm.refresh() },
                 ) {
                     Column {
-                        ItemList(items, Modifier.weight(1f), onLoadMore = {
+                        MainItems(items, Modifier.weight(1f), onLoadMore = {
                             vm.loadMore()
                         }) {
                             snackbarCoroutineScope.launch {
@@ -86,26 +90,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ItemList(items: List<Item>, modifier: Modifier, onLoadMore: () -> Unit, showSnackBar: (String) -> Unit) {
+fun MainItems(items: List<Item>, modifier: Modifier, onLoadMore: () -> Unit, showSnackBar: (String) -> Unit) {
     val listState = rememberLazyListState()
 
     LazyColumn(modifier.fillMaxWidth(), state = listState) {
         items(items) { item ->
-            Row(Modifier
-                .height(50.dp)
-                .clickable {
-                    showSnackBar.invoke(item.title)
-                }) {
-                Text(
-                    item.title,
-                    Modifier
-                        .wrapContentHeight()
-                        .fillMaxWidth()
-                        .padding(start = 16.dp)
-                        .align(Alignment.CenterVertically)
-                )
-            }
-            Divider(color = Color.LightGray, thickness = 1.dp)
+            MainItem(item = item, showSnackBar = showSnackBar)
         }
     }
 
@@ -113,6 +103,69 @@ fun ItemList(items: List<Item>, modifier: Modifier, onLoadMore: () -> Unit, show
         onLoadMore()
     }
 }
+
+@Composable
+fun MainItem(item: Item, showSnackBar: (String) -> Unit) {
+    ConstraintLayout(Modifier
+        .height(100.dp)
+        .clickable {
+            showSnackBar.invoke(item.title)
+        }) {
+
+        val (image, title, content) = createRefs()
+
+        if (item.content != null) {
+            createVerticalChain(title, content, chainStyle = ChainStyle.Spread)
+        }
+
+        Image(
+            painter = rememberImagePainter(
+                data = item.imageUrl
+            ),
+            contentDescription = "android logo",
+            modifier = Modifier
+                .size(50.dp)
+                .constrainAs(image) {
+                    top.linkTo(anchor = parent.top)
+                    bottom.linkTo(anchor = parent.bottom)
+                    start.linkTo(anchor = parent.start, margin = 16.dp)
+                }
+        )
+
+        Text(
+            item.title,
+            Modifier
+                .wrapContentHeight()
+                .fillMaxWidth()
+                .constrainAs(title) {
+                    start.linkTo(anchor = image.end, margin = 16.dp)
+                    top.linkTo(anchor = parent.top)
+                    bottom.linkTo(anchor = if (item.content == null) {
+                        parent.bottom
+                    } else {
+                        content.top
+                    })
+                }
+        )
+        item.content?.let {
+            Text(
+                item.content,
+                Modifier
+                    .wrapContentHeight()
+                    .fillMaxWidth()
+                    .constrainAs(content) {
+                        start.linkTo(anchor = image.end, margin = 16.dp)
+                        top.linkTo(anchor = title.bottom)
+                        bottom.linkTo(anchor = parent.bottom)
+                    }
+            )
+        }
+
+    }
+
+    Divider(color = Color.LightGray, thickness = 1.dp)
+}
+
 
 @Composable
 fun InfiniteListHandler(
@@ -173,7 +226,7 @@ fun BottomButtons(addItem: () -> Unit, deleteItem: () -> Unit) {
 @Composable
 fun DefaultPreview() {
     ComposePlaygroundTheme {
-        ItemList(
+        MainItems(
             items = listOf(
                 Item("1"),
                 Item("2"),
@@ -195,5 +248,13 @@ fun DefaultPreview() {
 fun BottomsPreview() {
     ComposePlaygroundTheme {
         BottomButtons(addItem = {}, deleteItem = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MainItemPreView() {
+    ComposePlaygroundTheme {
+        MainItem(item = Item(title = "테스트", content = null, imageUrl = ""), showSnackBar = {})
     }
 }
