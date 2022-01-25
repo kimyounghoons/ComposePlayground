@@ -20,10 +20,17 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.Scaffold
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.material.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -54,34 +61,53 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ComposePlaygroundTheme {
-                val items by vm.items.observeAsState(initial = listOf())
-                val snackbarHostState = remember { SnackbarHostState() }
-                val snackbarCoroutineScope = rememberCoroutineScope()
-                val isRefreshing by vm.isRefreshing.observeAsState(false)
-                SwipeRefresh(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(),
-                    state = rememberSwipeRefreshState(isRefreshing),
-                    onRefresh = { vm.refresh() },
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = {
+                                Text(text = "Compose Playground")
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = { onBackPressed() }) {
+                                    Icon(Icons.Default.ArrowBack, contentDescription = null)
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { vm.refresh() }) {
+                                    Icon(Icons.Filled.Refresh, contentDescription = null)
+                                }
+                            })
+                    }
                 ) {
-                    Column {
-                        MainItems(items, Modifier.weight(1f), onLoadMore = {
-                            vm.loadMore()
-                        }) {
-                            snackbarCoroutineScope.launch {
-                                snackbarHostState.currentSnackbarData?.dismiss()
-                                snackbarHostState.showSnackbar("아이템 : ${it}")
+                    val items by vm.items.observeAsState(initial = listOf())
+                    val snackbarHostState = remember { SnackbarHostState() }
+                    val snackbarCoroutineScope = rememberCoroutineScope()
+                    val isRefreshing by vm.isRefreshing.observeAsState(false)
+                    SwipeRefresh(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(),
+                        state = rememberSwipeRefreshState(isRefreshing),
+                        onRefresh = { vm.refresh() },
+                    ) {
+                        Column {
+                            MainItems(items, Modifier.weight(1f), onLoadMore = {
+                                vm.loadMore()
+                            }) {
+                                snackbarCoroutineScope.launch {
+                                    snackbarHostState.currentSnackbarData?.dismiss()
+                                    snackbarHostState.showSnackbar("아이템 : ${it}")
+                                }
                             }
+
+                            SnackbarHost(hostState = snackbarHostState)
+
+                            BottomButtons(addItem = {
+                                vm.addItem()
+                            }, deleteItem = {
+                                vm.deleteItem()
+                            })
                         }
-
-                        SnackbarHost(hostState = snackbarHostState)
-
-                        BottomButtons(addItem = {
-                            vm.addItem()
-                        }, deleteItem = {
-                            vm.deleteItem()
-                        })
                     }
                 }
             }
@@ -112,11 +138,7 @@ fun MainItem(item: Item, showSnackBar: (String) -> Unit) {
             showSnackBar.invoke(item.title)
         }) {
 
-        val (image, title, content) = createRefs()
-
-        if (item.content != null) {
-            createVerticalChain(title, content, chainStyle = ChainStyle.Spread)
-        }
+        val (image, title, content, divider) = createRefs()
 
         Image(
             painter = rememberImagePainter(
@@ -147,7 +169,9 @@ fun MainItem(item: Item, showSnackBar: (String) -> Unit) {
                     })
                 }
         )
+
         item.content?.let {
+            createVerticalChain(title, content, chainStyle = ChainStyle.Spread)
             Text(
                 item.content,
                 Modifier
@@ -161,9 +185,15 @@ fun MainItem(item: Item, showSnackBar: (String) -> Unit) {
             )
         }
 
+        Divider(
+            color = Color.LightGray,
+            thickness = 1.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .constrainAs(divider) {
+                    bottom.linkTo(parent.bottom)
+                })
     }
-
-    Divider(color = Color.LightGray, thickness = 1.dp)
 }
 
 
