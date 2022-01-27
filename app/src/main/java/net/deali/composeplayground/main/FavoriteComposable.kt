@@ -6,6 +6,6 @@ import androidx.navigation.NavHostController
 import net.deali.composeplayground.MainViewModel
 
 @Composable
-fun AddItemComposable(navController: NavHostController, vm: MainViewModel, onBackPressed: () -> Unit) {
+fun FavoriteComposable(navController: NavHostController, vm: MainViewModel, onBackPressed: () -> Unit) {
     BackHandler(enabled = true, onBack = onBackPressed)
 }

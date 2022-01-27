@@ -25,6 +25,9 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
     private val _isRefreshing = MutableLiveData<Boolean>(true)
     val isRefreshing: LiveData<Boolean> = _isRefreshing
 
+    private val _needBackButton = MutableLiveData<Boolean>()
+    val needBackButton : LiveData<Boolean> = _needBackButton
+
 
     private var pageCount = 1
 
@@ -72,6 +75,10 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
         pageCount = 1
         _items.value = listOf()
         loadMore()
+    }
+
+    fun showBackButton(isVisible : Boolean) {
+        _needBackButton.value = isVisible
     }
 
     companion object {
