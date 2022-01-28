@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_graph"
+    app:startDestination="@id/home">
+
+    <fragment
+        android:id="@+id/home"
+        android:name="net.deali.composeplayground.ui.mainHome.MainHomeFragment"
+        android:label="MainHomeGoodsItems">
+        <action
+            android:id="@+id/goodsItemDetail"
+            app:destination="@id/goodsItemDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/goodsItemDetailFragment"
+        android:name="net.deali.composeplayground.ui.goodsItemDetail.GoodsItemDetailFragment"
+        android:label="GoodsItemDetailFragment">
+        <action
+            android:id="@+id/addGoodsItem"
+            app:destination="@id/addGoodsItemDetailFragment" />
+    </fragment>
+
+
+    <fragment
+        android:id="@+id/addGoodsItemDetailFragment"
+        android:name="net.deali.composeplayground.ui.addGoodsItem.AddGoodsItemFragment"
+        android:label="AddGoodsItemFragment">
+
+        <action
+            android:id="@+id/goToHome"
+            app:destination="@id/home"
+            app:popUpTo="@id/home"
+            app:popUpToInclusive="true"/>
+    </fragment>
+</navigation>

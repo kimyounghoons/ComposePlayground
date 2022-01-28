@@ -1,4 +1,4 @@
-package net.deali.composeplayground.main
+package net.deali.composeplayground.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -24,8 +24,6 @@ import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
@@ -36,54 +34,39 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ChainStyle
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.launch
-import net.deali.composeplayground.Item
-import net.deali.composeplayground.MainViewModel
+import net.deali.composeplayground.models.GoodsItem
 import net.deali.composeplayground.R
 import net.deali.composeplayground.ui.theme.ComposePlaygroundTheme
 
 @Composable
-fun MainHome(vm: MainViewModel, onBackPressed: () -> Unit) {
+fun MainHome(modifier : Modifier, goodsItems : List<GoodsItem>, isRefreshing: Boolean, onRefresh: ()->Unit, onLoadMore: ()->Unit, onBackPressed: () -> Unit, goToDetail: (GoodsItem) ->Unit) {
     BackHandler(enabled = true, onBack = onBackPressed)
-    val items by vm.items.observeAsState(initial = listOf())
-    val snackbarHostState = remember { SnackbarHostState() }
-    val snackbarCoroutineScope = rememberCoroutineScope()
-    val isRefreshing by vm.isRefreshing.observeAsState(false)
 
     SwipeRefresh(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .fillMaxHeight(),
         state = rememberSwipeRefreshState(isRefreshing),
-        onRefresh = { vm.refresh() },
+        onRefresh = onRefresh,
     ) {
         Column {
-            MainItems(items, Modifier.weight(1f), onLoadMore = {
-                vm.loadMore()
-            }) {
-                snackbarCoroutineScope.launch {
-                    snackbarHostState.currentSnackbarData?.dismiss()
-                    snackbarHostState.showSnackbar("아이템 : ${it}")
-                }
-            }
-            SnackbarHost(hostState = snackbarHostState)
+            MainItems(goodsItems, Modifier.weight(1f), onLoadMore = onLoadMore, goToDetail = goToDetail)
         }
     }
 }
 
 @Composable
-fun MainItems(items: List<Item>, modifier: Modifier, onLoadMore: () -> Unit, showSnackBar: (String) -> Unit) {
+fun MainItems(goodsItems: List<GoodsItem>, modifier: Modifier, onLoadMore: () -> Unit, goToDetail: (GoodsItem) -> Unit) {
     val listState = rememberLazyListState()
 
     LazyColumn(modifier.fillMaxWidth(), state = listState) {
-        items(items) { item ->
-            MainItem(item = item, showSnackBar = showSnackBar)
+        items(goodsItems) { item ->
+            MainItem(goodsItem = item,goToDetail)
         }
     }
 
@@ -93,18 +76,18 @@ fun MainItems(items: List<Item>, modifier: Modifier, onLoadMore: () -> Unit, sho
 }
 
 @Composable
-fun MainItem(item: Item, showSnackBar: (String) -> Unit) {
+fun MainItem(goodsItem: GoodsItem, goToDetail: (GoodsItem) -> Unit) {
     ConstraintLayout(Modifier
         .height(100.dp)
         .clickable {
-            showSnackBar.invoke(item.title)
+            goToDetail.invoke(goodsItem)
         }) {
 
         val (image, title, content, divider) = createRefs()
 
         Image(
             painter = rememberImagePainter(
-                data = item.imageUrl
+                data = goodsItem.imageUrl
             ),
             contentDescription = "android logo",
             modifier = Modifier
@@ -117,14 +100,14 @@ fun MainItem(item: Item, showSnackBar: (String) -> Unit) {
         )
 
         Text(
-            item.title,
+            goodsItem.name,
             Modifier
                 .wrapContentHeight()
                 .fillMaxWidth()
                 .constrainAs(title) {
                     start.linkTo(anchor = image.end, margin = 16.dp)
                     top.linkTo(anchor = parent.top)
-                    bottom.linkTo(anchor = if (item.content == null) {
+                    bottom.linkTo(anchor = if (goodsItem.price == null) {
                         parent.bottom
                     } else {
                         content.top
@@ -132,10 +115,10 @@ fun MainItem(item: Item, showSnackBar: (String) -> Unit) {
                 }
         )
 
-        item.content?.let {
+        goodsItem.price?.let {
             createVerticalChain(title, content, chainStyle = ChainStyle.Spread)
             Text(
-                item.content,
+                goodsItem.price,
                 Modifier
                     .wrapContentHeight()
                     .fillMaxWidth()
@@ -184,46 +167,17 @@ fun InfiniteListHandler(
     }
 }
 
-@Composable
-fun BottomButtons(addItem: () -> Unit, deleteItem: () -> Unit) {
-    Row {
-        TextButton(
-            onClick = { deleteItem.invoke() },
-            modifier = Modifier
-                .height(48.dp)
-                .fillMaxWidth()
-                .padding(6.dp)
-                .background(Color.LightGray)
-                .weight(1f)
-        ) {
-            Text(stringResource(R.string.delete_last_item), color = Color.Black)
-        }
-
-        TextButton(
-            onClick = { addItem.invoke() },
-            modifier = Modifier
-                .height(48.dp)
-                .fillMaxWidth()
-                .padding(6.dp)
-                .background(Color.LightGray)
-                .weight(1f)
-        ) {
-            Text(stringResource(R.string.add_last_item), color = Color.Black)
-        }
-    }
-}
-
 
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
     ComposePlaygroundTheme {
         MainItems(
-            items = listOf(
-                Item("1"),
-                Item("2"),
-                Item("3"),
-                Item("4")
+            goodsItems = listOf(
+                GoodsItem("1"),
+                GoodsItem("2"),
+                GoodsItem("3"),
+                GoodsItem("4")
             ),
             modifier = Modifier,
             onLoadMore = {
@@ -237,16 +191,8 @@ fun DefaultPreview() {
 
 @Preview(showBackground = true)
 @Composable
-fun BottomsPreview() {
-    ComposePlaygroundTheme {
-        BottomButtons(addItem = {}, deleteItem = {})
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
 fun MainItemPreView() {
     ComposePlaygroundTheme {
-        MainItem(item = Item(title = "테스트", content = null, imageUrl = ""), showSnackBar = {})
+        MainItem(goodsItem = GoodsItem(name = "테스트", price = null, imageUrl = ""), goToDetail = {})
     }
 }

@@ -5,4 +5,5 @@
     <string name="home">홈</string>
     <string name="favorite">즐겨찾기</string>
     <string name="add_item">아이템 추가</string>
+    <string name="goods_item_detail">상품 상세</string>
 </resources>

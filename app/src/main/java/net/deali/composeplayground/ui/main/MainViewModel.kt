@@ -1,4 +1,4 @@
-package net.deali.composeplayground
+package net.deali.composeplayground.ui.main
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -7,11 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.deali.composeplayground.models.GoodsItem
+import net.deali.composeplayground.valueNN
 
 class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
 
-    private val _items = savedStateHandle.getLiveData(KEY_ITEMS, listOf<Item>())
-    val items: LiveData<List<Item>>
+    private val _items = savedStateHandle.getLiveData(KEY_ITEMS, listOf<GoodsItem>())
+    val items: LiveData<List<GoodsItem>>
         get() = _items
 
     private val _isAllLoaded = savedStateHandle.getLiveData(KEY_IS_ALL_LOADED, false)
@@ -25,15 +27,12 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
     private val _isRefreshing = MutableLiveData<Boolean>(true)
     val isRefreshing: LiveData<Boolean> = _isRefreshing
 
-    private val _needBackButton = MutableLiveData<Boolean>()
-    val needBackButton : LiveData<Boolean> = _needBackButton
-
 
     private var pageCount = 1
 
     fun addItem() {
         _items.value = _items.valueNN.let {
-            it + Item("아이템")
+            it + GoodsItem("아이템")
         }
     }
 
@@ -50,10 +49,10 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
             viewModelScope.launch {
                 _isLoading.value = true
                 delay(1000)
-                val items = arrayListOf<Item>()
+                val items = arrayListOf<GoodsItem>()
                 repeat(20) {
                     items.add(
-                        Item(title = "아이템 ${_items.valueNN.size + it + 1}", content = if (it % 2 == 0) {
+                        GoodsItem(name = "아이템 ${_items.valueNN.size + it + 1}", price = if (it % 2 == 0) {
                             null
                         } else {
                             "내용 :${_items.valueNN.size + it + 1}"
@@ -75,10 +74,6 @@ class MainViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
         pageCount = 1
         _items.value = listOf()
         loadMore()
-    }
-
-    fun showBackButton(isVisible : Boolean) {
-        _needBackButton.value = isVisible
     }
 
     companion object {
